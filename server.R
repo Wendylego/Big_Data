@@ -30,7 +30,7 @@ sample=sample(1:nrow(data),nrow(data)*0.7)
 train=data[sample,]
 test=data[-sample,]
 
-x <- model.matrix(V2~., train)[, -1]
+x <-as.matrix(train[,-1])
 y=train[,1]
 
 x_test=as.matrix(test[,-1])
@@ -54,6 +54,7 @@ lasso_prob <- predict(model_cv_lasso,newx = x_test,s=lambda_cv,type="response")
 lasso_pred=rep(1,nrow(x_test))
 lasso_pred[lasso_prob<0.5]=0
 lasso_table = table(lasso_pred,test$V2)
+roc(test$V2,as.vector(lasso_prob),plot=TRUE,legacy.axes=TRUE, lwd=2, col="red",auc.polygon=TRUE,print.auc=TRUE,grid=TRUE)
 specificite_lasso=(lasso_table[1,1])/(lasso_table[1,1]+lasso_table[1,2])
 sensibilite_lasso=(lasso_table[2,2])/(lasso_table[2,1]+lasso_table[2,2])
 Tx_bon_class_lasso=(lasso_table[1,1]+lasso_table[2,2])/(lasso_table[2,1]+lasso_table[2,2]+lasso_table[1,1]+lasso_table[1,2])
@@ -66,9 +67,9 @@ Nom = as.data.frame(Nom)
 Resume_lasso = cbind(Nom,Resume_lasso)
 
 ## RIDGE ##
-
-x <- model.matrix(V2~., train)[, -1]
+x <-as.matrix(train[,-1])
 y=train[,1]
+
 # Perform 10-fold cross-validation to select lambda 
 lambdas_to_try <- 10^seq(-3, 5, length.out = 100)
 # Setting alpha = 0 implements ridge regression
@@ -95,6 +96,9 @@ Nom = c("Specificite","Sensibilite","Taux de bonne classification", "Taux de mau
 Resume_ridge = as.data.frame(Resume_ridge)
 Nom = as.data.frame(Nom)
 Resume_ridge = cbind(Nom,Resume_ridge)
+
+roc_ridge = roc(test$V2,as.vector(ridge_prob),plot=TRUE,legacy.axes=TRUE, lwd=2, col="lightseagreen",auc.polygon=TRUE,print.auc=TRUE,grid=TRUE)
+
 
 ## ADAPTIVE LASSO ##
 
@@ -132,13 +136,13 @@ elasticnet <- lapply(alphalist, function(a){
             standardize = TRUE, nfolds = 10)
 })
 for (i in 1:11) {print(min(elasticnet[[i]]$cvm))}
-elastic_net=cv.glmnet(x,y, alpha=0.8, lambda = lambdas_to_try, standardize= TRUE, nfolds=10)
+elastic_net=cv.glmnet(x,y, alpha=0.5, lambda = lambdas_to_try, standardize= TRUE, nfolds=10)
 # Plot cross-validation results
 plot(elastic_net)
 # Best cross-validated lambda
 lambda_cv_elastic <- elastic_net$lambda.min
 # Fit final model
-model_cv_elastic <- glmnet(x, y, alpha =0.8, lambda = lambda_cv, standardize = TRUE)
+model_cv_elastic <- glmnet(x, y, alpha =0.5, lambda = lambda_cv, standardize = TRUE)
 elastic_prob <- predict(model_cv_elastic,newx = x_test,s=lambda_cv,type="response")
 elastic_pred=rep(1,nrow(x_test))
 elastic_pred[elastic_prob<0.5]=0
@@ -181,7 +185,7 @@ Resume_rf = cbind(Nom,Resume_rf)
 
 ## GRADIENT BOOSTING ##
 
-x <- model.matrix(V2~., train)[, -1]
+x <- as.matrix(train[,-1])
 y=train[,1]
 cv=xgb.cv(data=x, label=y,nrounds = 100, nfold = 5, eta = 0.3, depth = 6)
 elog <- as.data.frame(cv$evaluation_log)
@@ -227,51 +231,6 @@ Nom = c("Specificite","Sensibilite","Taux de bonne classification", "Taux de mau
 Resume_gbm = as.data.frame(Resume_gbm)
 Nom = as.data.frame(Nom)
 Resume_gbm = cbind(Nom,Resume_gbm)
-
-
-########################## TABLEAU DE COMPARAISON ##############################
-AUC_Lasso <- auc(test$V2,as.vector(lasso_prob))
-AUC_Ridge <- auc(test$V2,as.vector(ridge_prob))
-AUC_Adaptative_Lasso <- auc(test$V2,as.vector(alasso_prob))
-AUC_Elastic <- auc(test$V2,as.vector(elastic_prob))
-AUC_GB <- auc(test$V2,as.vector(gb_prob))
-AUC_RF <- auc(test$V2,as.vector(rf.probs$predictions[,2]))
-AUC_gbm <- auc(test$V2,as.vector(gbm_predicted))
-
-########################## GRAPHIQUE DE COMPARAISON ############################
-
-
-Indice = c("AUC","Sensibilite","Specificite","Taux de bonne classification", "Taux de mauvaise classification")
-Lasso =  round(c(AUC_Lasso,sensibilite_lasso,specificite_lasso,Tx_bon_class_lasso,Tx_mauvais_class_lasso),digits = 3)
-Adaptative_Lasso =  round(c(AUC_Ridge,sensibilite_al,specificite_al,Tx_bon_class_al,Tx_mauvais_class_al),digits = 3)
-Ridge =  round(c(AUC_Adaptative_Lasso,sensibilite_ridge,specificite_ridge,Tx_bon_class_ridge,Tx_mauvais_class_ridge),digits = 3)
-Elastic_Net =  round(c(AUC_Elastic,sensibilite_el,specificite_el,Tx_bon_class_el,Tx_mauvais_class_el),digits = 3)
-Gradient_Boosting =  round(c(AUC_GB,sensibilite_gb,specificite_gb,Tx_bon_class_gb,Tx_mauvais_class_gb),digits = 3)
-Random_forest = round(c(AUC_RF,sensibilite_rf,specificite_rf,Tx_bon_class_rf,Tx_mauvais_class_rf),digits = 3)
-ADA_boost = round(c(AUC_gbm,sensibilite_gbm,specificite_gbm,Tx_bon_class_gbm,Tx_mauvais_class_gbm),digits = 3)
-
-Indice = c("AUC","Sensibilite","Specificite","Taux de bonne classification", "Taux de mauvaise classification")
-Lasso =  round(c(AUC_Lasso,sensibilite_lasso,specificite_lasso,Tx_bon_class_lasso,Tx_mauvais_class_lasso),digits = 3)
-Adaptative_Lasso =  round(c(AUC_Ridge,sensibilite_al,specificite_al,Tx_bon_class_al,Tx_mauvais_class_al),digits = 3)
-Ridge =  round(c(AUC_Adaptative_Lasso,sensibilite_ridge,specificite_ridge,Tx_bon_class_ridge,Tx_mauvais_class_ridge),digits = 3)
-Elastic_Net =  round(c(AUC_Elastic,sensibilite_el,specificite_el,Tx_bon_class_el,Tx_mauvais_class_el),digits = 3)
-Gradient_Boosting =  round(c(AUC_GB,sensibilite_gb,specificite_gb,Tx_bon_class_gb,Tx_mauvais_class_gb),digits = 3)
-Random_forest = round(c(AUC_RF,sensibilite_rf,specificite_rf,Tx_bon_class_rf,Tx_mauvais_class_rf),digits = 3)
-ADA_boost = round(c(AUC_gbm,sensibilite_gbm,specificite_gbm,Tx_bon_class_gbm,Tx_mauvais_class_gbm),digits = 3)
-
-Tab_Comp = cbind(Indice,Lasso,Adaptative_Lasso,Ridge,Elastic_Net,Gradient_Boosting,Random_forest,ADA_boost)
-Tab_Comp = as.data.frame(Tab_Comp)
-
-########################## GRAPHIQUE DE COMPARAISON ############################
-
-roc_lasso <- roc(test$V2,as.vector(lasso_prob),plot=TRUE,legacy.axes=TRUE, lwd=2, col="orangered",auc.polygon=TRUE,print.auc=TRUE,grid=TRUE)
-roc_ridge <- roc(test$V2,as.vector(ridge_prob),plot=TRUE,legacy.axes=TRUE, lwd=2, col="snow2",auc.polygon=TRUE,print.auc=TRUE,grid=TRUE)
-roc_al <- roc(test$V2,as.vector(alasso_prob),plot=TRUE,legacy.axes=TRUE, lwd=2, col="hotpink",auc.polygon=TRUE,print.auc=TRUE,grid=TRUE)
-roc_el <- roc(test$V2,as.vector(elastic_prob),plot=TRUE,legacy.axes=TRUE, lwd=2, col="violetred4",auc.polygon=TRUE,print.auc=TRUE,grid=TRUE)
-roc_gb <- roc(test$V2,as.vector(gb_prob),plot=TRUE,legacy.axes=TRUE, lwd=2, col="red",auc.polygon=TRUE,print.auc=TRUE,grid=TRUE)
-roc_rf <- roc(test$V2,as.vector(rf.probs$predictions[,2]),plot=TRUE,legacy.axes=TRUE, lwd=2, col="red",auc.polygon=TRUE,print.auc=TRUE,grid=TRUE)
-roc_ada <- roc(test$V2,as.vector(gbm_predicted),plot=TRUE,legacy.axes=TRUE, lwd=2, col="lightseagreen",auc.polygon=TRUE,print.auc=TRUE,grid=TRUE)
-
 
 ####################### Partie serveur #########################################
 
@@ -420,10 +379,10 @@ server <- function(input, output,session) {
   
   
   
-  output$result4 <- renderPlot({
+  output$resultat <- renderPlot({
     if (input$method == "Lasso") {
       lasso_prob <- predict(model_cv_lasso,newx = x_test,s=lambda_cv,type="response")
-      roc(test$V2,as.vector(lasso_prob),plot=TRUE,legacy.axes=TRUE, lwd=2, col="red",auc.polygon=TRUE,print.auc=TRUE,grid=TRUE)}
+      roc(test$V2,as.vector(lasso_prob),plot=TRUE,legacy.axes=TRUE, lwd=2, col="lightseagreen",auc.polygon=TRUE,print.auc=TRUE,grid=TRUE)}
     
     else if (input$method == "Ridge") {
       ridge_prob <- predict(model_cv_ridge,newx = x_test,s=lambda_cv_ridge,type="response")
