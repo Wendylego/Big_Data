@@ -232,6 +232,17 @@ Resume_gbm = as.data.frame(Resume_gbm)
 Nom = as.data.frame(Nom)
 Resume_gbm = cbind(Nom,Resume_gbm)
 
+
+## ROC
+roc_lasso <- roc(test$V2,as.vector(lasso_prob),plot=TRUE,legacy.axes=TRUE, lwd=2, col="orangered",auc.polygon=TRUE,print.auc=TRUE,grid=TRUE)
+roc_ridge <- roc(test$V2,as.vector(ridge_prob),plot=TRUE,legacy.axes=TRUE, lwd=2, col="snow2",auc.polygon=TRUE,print.auc=TRUE,grid=TRUE)
+roc_al <- roc(test$V2,as.vector(alasso_prob),plot=TRUE,legacy.axes=TRUE, lwd=2, col="hotpink",auc.polygon=TRUE,print.auc=TRUE,grid=TRUE)
+roc_el <- roc(test$V2,as.vector(elastic_prob),plot=TRUE,legacy.axes=TRUE, lwd=2, col="violetred4",auc.polygon=TRUE,print.auc=TRUE,grid=TRUE)
+roc_gb <- roc(test$V2,as.vector(gb_prob),plot=TRUE,legacy.axes=TRUE, lwd=2, col="red",auc.polygon=TRUE,print.auc=TRUE,grid=TRUE)
+roc_ada <- roc(test$V2,as.vector(gbm_predicted),plot=TRUE,legacy.axes=TRUE, lwd=2, col="lightseagreen",auc.polygon=TRUE,print.auc=TRUE,grid=TRUE)
+roc_rf <- roc(test$V2,as.vector(rf.probs$predictions[,2]),plot=TRUE,legacy.axes=TRUE, lwd=2, col="lightseagreen",auc.polygon=TRUE,print.auc=TRUE,grid=TRUE)
+
+
 ####################### Partie serveur #########################################
 
 
