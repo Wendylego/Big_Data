@@ -237,6 +237,47 @@ Resume_gbm = cbind(Nom,Resume_gbm)
 
 server <- function(input, output,session) {
   
+  output$resultat <- renderPlot({
+    if (input$method == "Lasso") {
+      lasso_prob <- predict(model_cv_lasso,newx = x_test,s=lambda_cv,type="response")
+      roc(test$V2,as.vector(lasso_prob),plot=TRUE,legacy.axes=TRUE, lwd=2, col="lightseagreen",auc.polygon=TRUE,print.auc=TRUE,grid=TRUE)}
+    
+    else if (input$method == "Ridge") {
+      ridge_prob <- predict(model_cv_ridge,newx = x_test,s=lambda_cv_ridge,type="response")
+      roc(test$V2,as.vector(ridge_prob),plot=TRUE,legacy.axes=TRUE, lwd=2, col="lightseagreen",auc.polygon=TRUE,print.auc=TRUE,grid=TRUE)
+    }
+    
+    else if (input$method == "Adaptive Lasso") {
+      alasso_prob <- predict(model_cv_alasso,newx = x_test,s=adalasso.fit$lambda.min,type="response")
+      roc(test$V2,as.vector(alasso_prob),plot=TRUE,legacy.axes=TRUE, lwd=2, col="lightseagreen",auc.polygon=TRUE,print.auc=TRUE,grid=TRUE)
+    }
+    
+    else if (input$method == "Elastic Net") {
+      elastic_prob <- predict(model_cv_elastic,newx = x_test,s=lambda_cv,type="response")
+      roc(test$V2,as.vector(elastic_prob),plot=TRUE,legacy.axes=TRUE, lwd=2, col="lightseagreen",auc.polygon=TRUE,print.auc=TRUE,grid=TRUE)
+    }
+    
+    else if (input$method == "Gradient Boosting") {
+      gb_prob <- predict(model, x_test)
+      roc(test$V2,as.vector(gb_prob),plot=TRUE,legacy.axes=TRUE, lwd=2, col="lightseagreen",auc.polygon=TRUE,print.auc=TRUE,grid=TRUE)
+      
+    }
+    
+    else if (input$method == "Random Forest") {
+      rf.probs=predict(rf,data=test)
+      roc(test$V2,as.vector(rf.probs$predictions[,2]),plot=TRUE,legacy.axes=TRUE, lwd=2, col="lightseagreen",auc.polygon=TRUE,print.auc=TRUE,grid=TRUE)
+      
+    }
+    else if (input$method == "ADA Boost") {
+      gbm_predicted <- predict(gbm_algorithm, test, n.trees = 1000,type = 'response')
+      roc(test$V2,as.vector(gbm_predicted),plot=TRUE,legacy.axes=TRUE, lwd=2, col="lightseagreen",auc.polygon=TRUE,print.auc=TRUE,grid=TRUE)
+    }
+    
+    else {print('error')}
+    
+  })
+  
+  
   # Home tab content
   
   output$image <- renderImage({
@@ -379,43 +420,7 @@ server <- function(input, output,session) {
   
   
   
-  output$resultat <- renderPlot({
-    if (input$method == "Lasso") {
-      lasso_prob <- predict(model_cv_lasso,newx = x_test,s=lambda_cv,type="response")
-      roc(test$V2,as.vector(lasso_prob),plot=TRUE,legacy.axes=TRUE, lwd=2, col="lightseagreen",auc.polygon=TRUE,print.auc=TRUE,grid=TRUE)}
-    
-    else if (input$method == "Ridge") {
-      ridge_prob <- predict(model_cv_ridge,newx = x_test,s=lambda_cv_ridge,type="response")
-      roc(test$V2,as.vector(ridge_prob),plot=TRUE,legacy.axes=TRUE, lwd=2, col="lightseagreen",auc.polygon=TRUE,print.auc=TRUE,grid=TRUE)
-    }
-    
-    else if (input$method == "Adaptive Lasso") {
-      alasso_prob <- predict(model_cv_alasso,newx = x_test,s=adalasso.fit$lambda.min,type="response")
-      roc(test$V2,as.vector(alasso_prob),plot=TRUE,legacy.axes=TRUE, lwd=2, col="lightseagreen",auc.polygon=TRUE,print.auc=TRUE,grid=TRUE)
-    }
-    
-    else if (input$method == "Elastic Net") {
-      elastic_prob <- predict(model_cv_elastic,newx = x_test,s=lambda_cv,type="response")
-      roc(test$V2,as.vector(elastic_prob),plot=TRUE,legacy.axes=TRUE, lwd=2, col="lightseagreen",auc.polygon=TRUE,print.auc=TRUE,grid=TRUE)
-    }
-    
-    else if (input$method == "Gradient Boosting") {
-      gb_prob <- predict(model, x_test)
-      roc(test$V2,as.vector(gb_prob),plot=TRUE,legacy.axes=TRUE, lwd=2, col="lightseagreen",auc.polygon=TRUE,print.auc=TRUE,grid=TRUE)
-      
-    }
-    
-    else if (input$method == "Random Forest") {
-      rf.probs=predict(rf,data=test)
-      roc(test$V2,as.vector(rf.probs$predictions[,2]),plot=TRUE,legacy.axes=TRUE, lwd=2, col="lightseagreen",auc.polygon=TRUE,print.auc=TRUE,grid=TRUE)
-      
-    }
-    else if (input$method == "ADA Boost") {
-      gbm_predicted <- predict(gbm_algorithm, test, n.trees = 1000,type = 'response')
-      roc(test$V2,as.vector(gbm_predicted),plot=TRUE,legacy.axes=TRUE, lwd=2, col="lightseagreen",auc.polygon=TRUE,print.auc=TRUE,grid=TRUE)
-      
-    }})
-  
+
   
   output$Resultats <- downloadHandler(
     # For PDF output, change this to "report.pdf"
